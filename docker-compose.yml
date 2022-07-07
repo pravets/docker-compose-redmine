@@ -1,31 +1,55 @@
 version: '3.3'
 services:
-   postgres:
-     image: postgres:10
-     container_name: redmine_data
-     volumes:
-       - ./pg-data:/var/lib/postgresql/data
-     environment:
-       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-       POSTGRES_DB: ${POSTGRES_DB}
-       PGDATA: "/var/lib/postgresql/data"
-     restart: always
-   redmine:
-     container_name: redmine
-     build:
-       context: redmine/.
-     image: redmine:custom
-     ports:
-       - 4444:3000
-     volumes:
-       - ./data/plugins:/usr/src/redmine/plugins
-       - ./data/themes:/usr/src/redmine/public/themes
-       - ./data/data:/usr/src/redmine/files
-       - ./data/git:/git
-     environment:
-       REDMINE_DB_POSTGRES: "postgres"
-       REDMINE_DB_USERNAME: ${POSTGRES_USERNAME}
-       REDMINE_DB_PASSWORD: ${POSTGRES_PASSWORD}
-       REDMINE_DB_DATABASE: ${POSTGRES_DB}
-       REDMINE_SECRET_KEY_BASE: ${REDMINE_SECRET_KEY_BASE}
-     restart: always
+
+  postgres:
+    image: postgres:10
+    container_name: redmine_data
+    volumes:
+      - ./pg-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: "/var/lib/postgresql/data"
+    restart: always
+
+  redmine:
+    container_name: redmine
+    build:
+      context: redmine/.
+    image: redmine:custom
+    ports:
+      - 4444:3000
+    volumes:
+      - ./data/plugins:/usr/src/redmine/plugins
+      - ./data/themes:/usr/src/redmine/public/themes
+      - ./data/data:/usr/src/redmine/files
+      - ./data/git:/git
+    environment:
+      REDMINE_DB_POSTGRES: "postgres"
+      REDMINE_DB_USERNAME: ${POSTGRES_USERNAME}
+      REDMINE_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDMINE_DB_DATABASE: ${POSTGRES_DB}
+      REDMINE_SECRET_KEY_BASE: ${REDMINE_SECRET_KEY_BASE}
+    restart: always
+
+  pgbackups:
+    image: prodrigestivill/postgres-backup-local
+    container_name: redmine_db_backup
+    restart: always
+    volumes:
+      - ./backup:/backups
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB} 
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_EXTRA_OPTS: "-Z9 --schema=public --blobs"
+      SCHEDULE: "@every 01h00m00s"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+      HEALTHCHECK_PORT: 81
+
+  
